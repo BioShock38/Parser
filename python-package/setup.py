@@ -5,5 +5,5 @@ setup(name='polymnie',
       description='Parser and writer in different bioinformatic format',
       author='Thomas Dias-Alves',
       packages=find_packages(),
-      test_suite='pyhaplophase.tests',
+      test_suite='polymnie.tests',
       zip_safe=False)
