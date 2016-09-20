@@ -10,7 +10,7 @@ Here we use the `R` package `vcfR` to extract the genotypes contained in a VCF f
 `read.vcfR` stores the VCF into an object of class `vcfR` and
 `extract.gt` retrieves the genotype matrix from `vcfR` objects.
 Here is a little walkthrough example on how to obtain the SNP matrix from a VCF, with a free and open
-dataset available here: [http://datadryad.org/resource/doi:10.5061/dryad.0817m](http://datadryad.org/resource/doi:10.5061/dryad.0817m). For computational reasons, we will only consider the first 1,000 variants by setting the argument `n` to `1000` in 
+dataset available here: [http://datadryad.org/resource/doi:10.5061/dryad.0817m](http://datadryad.org/resource/doi:10.5061/dryad.0817m) [2]. For computational reasons, we will only consider the first 1,000 variants by setting the argument `n` to `1000` in 
 the `read.vcfR` function.
 
 ```
@@ -18,7 +18,6 @@ require(vcfR)
 setwd("~/Downloads/Original_data_set_ch6_12_15/")
 obj.vcfR <- read.vcfR("comt.chr06.snp.full.final.vcf",n=100)
 geno <- extract.gt(obj.vcfR) 
-print(geno[1:4,1:8])
 ```
 
 `extract.gt` returns the genotypic information in a simple way that we can easily convert into allele counts.
@@ -61,7 +60,7 @@ vcf2pcadapt <- function(geno,output.file="file.pcadapt",blocksize=1000,console.c
   skipped <- 0
   while (init.block < nSNP && end.block <= nSNP){
     snp.lines <- geno[init.block:end.block,]
-    hap2geno <- t(convert.line.2(snp.lines))
+    hap2geno <- t(convert.line.(snp.lines))
     skipped <- skipped + blocksize - ncol(hap2geno)
     write(hap2geno,file = output.file,append = TRUE,ncolumns = nIND)  
     if (end.block%%console.count == 0){
@@ -87,3 +86,8 @@ end.time <- Sys.time()
 print(end.time - start.time)
 ```
 
+## <span style="color:SteelBlue">References</span> 
+
+[1] Suarez-Gonzalez A, Hefer C, Christie C, Corea O, Lexer C, Cronk Q, Douglas C (2016) Genomic and functional approaches reveal a case of adaptive introgression from Populus balsamifera (balsam poplar) in P. trichocarpa (black cottonwood). Molecular Ecology, online in advance of print. http://dx.doi.org/10.1111/mec.13539
+
+[2] Suarez-Gonzalez A, Hefer C, Christie C, Corea O, Lexer C, Cronk Q, Douglas C (2016) Data from: Genomic and functional approaches reveal a case of adaptive introgression from Populus balsamifera (balsam poplar) in P. trichocarpa (black cottonwood). Dryad Digital Repository. http://dx.doi.org/10.5061/dryad.0817m

@@ -126,19 +126,66 @@ Bioshock38
 
 <div id="how-to-get-the-snp-matrix-from-a-vcf" class="section level2">
 <h2><span style="color:SteelBlue">How to get the SNP matrix from a VCF</span></h2>
-<p>Here we use the <code>R</code> package <code>vcfR</code> to extract the genotypes contained in a VCF file. <code>read.vcfR</code> stores the VCF into an object of class <code>vcfR</code> and <code>extract.gt</code> retrieves the genotype matrix from <code>vcfR</code> objects. Here is a little walkthrough example on how to obtain the SNP matrix from a VCF, with a free and open dataset available here: <a href="http://datadryad.org/resource/doi:10.5061/dryad.0817m" class="uri">http://datadryad.org/resource/doi:10.5061/dryad.0817m</a>. For computational reasons, we will only consider the first 1,000 variants by setting the argument <code>n</code> to <code>1000</code> in the <code>read.vcfR</code> function.</p>
+<p>Here we use the <code>R</code> package <code>vcfR</code> to extract the genotypes contained in a VCF file. <code>read.vcfR</code> stores the VCF into an object of class <code>vcfR</code> and <code>extract.gt</code> retrieves the genotype matrix from <code>vcfR</code> objects. Here is a little walkthrough example on how to obtain the SNP matrix from a VCF, with a free and open dataset available here: <a href="http://datadryad.org/resource/doi:10.5061/dryad.0817m" class="uri">http://datadryad.org/resource/doi:10.5061/dryad.0817m</a> [2]. For computational reasons, we will only consider the first 1,000 variants by setting the argument <code>n</code> to <code>1000</code> in the <code>read.vcfR</code> function.</p>
 <pre><code>require(vcfR)
 setwd(&quot;~/Downloads/Original_data_set_ch6_12_15/&quot;)
 obj.vcfR &lt;- read.vcfR(&quot;comt.chr06.snp.full.final.vcf&quot;,n=100)
-geno &lt;- extract.gt(obj.vcfR) 
-print(geno[1:4,1:8])</code></pre>
-<p>Non SNP markers are then removed using a mask and missing values are encoded with a <code>9</code>.</p>
+geno &lt;- extract.gt(obj.vcfR) </code></pre>
+<p><code>extract.gt</code> returns the genotypic information in a simple way that we can easily convert into allele counts. Non SNP markers are then removed using a mask and missing values are encoded with a <code>9</code>. All of this is done as follows:</p>
 <pre><code>&quot;0/0&quot; -&gt; 0
 &quot;0/1&quot; -&gt; 1
 &quot;1/0&quot; -&gt; 1
 &quot;1/1&quot; -&gt; 2
 &quot;./.&quot; -&gt; 9
 NA -&gt; 9</code></pre>
+<p>We choose to proceed block-wisely so the whole genotype matrix is not stored once again.</p>
+<pre class="r"><code>convert.line &lt;- function(hap.block){
+  geno.block &lt;- array(9,dim=dim(hap.block))
+  geno.block[which(hap.block==&quot;0/0&quot;,arr.ind = TRUE)] &lt;- 0
+  geno.block[which(hap.block==&quot;0/1&quot;,arr.ind = TRUE)] &lt;- 1
+  geno.block[which(hap.block==&quot;1/0&quot;,arr.ind = TRUE)] &lt;- 1
+  geno.block[which(hap.block==&quot;1/1&quot;,arr.ind = TRUE)] &lt;- 2
+  mask &lt;- !as.logical(apply(hap.block,MARGIN=1,FUN=function(x){sum(!(x %in% c(&quot;0/0&quot;,&quot;0/1&quot;,&quot;1/0&quot;,&quot;1/1&quot;,&quot;./.&quot;,NA)))}))
+  filtered.geno &lt;- geno.block[mask,]
+  return(filtered.geno)
+}</code></pre>
+<pre class="r"><code>vcf2pcadapt &lt;- function(geno,output.file=&quot;file.pcadapt&quot;,blocksize=1000,console.count=10000){
+  if (file.exists(output.file)){
+    file.remove(output.file)
+  }
+  nIND &lt;- ncol(geno)
+  nSNP &lt;- nrow(geno)
+  init.block &lt;- 1
+  end.block &lt;- blocksize
+  skipped &lt;- 0
+  while (init.block &lt; nSNP &amp;&amp; end.block &lt;= nSNP){
+    snp.lines &lt;- geno[init.block:end.block,]
+    hap2geno &lt;- t(convert.line.2(snp.lines))
+    skipped &lt;- skipped + blocksize - ncol(hap2geno)
+    write(hap2geno,file = output.file,append = TRUE,ncolumns = nIND)  
+    if (end.block%%console.count == 0){
+      cat('\r',end.block,&quot;SNPs have been processed.&quot;)
+      flush.console() 
+    }
+    if (end.block+blocksize &lt;= nSNP){
+      init.block &lt;- end.block + 1
+      end.block &lt;- end.block + blocksize
+    } else {
+      init.block &lt;- end.block + 1
+      end.block &lt;- nSNP
+    }
+  }
+  cat('\r',end.block,&quot;variants have been processed.\n&quot;,skipped,&quot;variants have been discarded as they are not SNPs.&quot;)
+}</code></pre>
+<pre><code>start.time &lt;- Sys.time()
+vcf2pcadapt(geno,blocksize=100,console.count=100)
+end.time &lt;- Sys.time()
+print(end.time - start.time)</code></pre>
+</div>
+<div id="references" class="section level2">
+<h2><span style="color:SteelBlue">References</span></h2>
+<p>[1] Suarez-Gonzalez A, Hefer C, Christie C, Corea O, Lexer C, Cronk Q, Douglas C (2016) Genomic and functional approaches reveal a case of adaptive introgression from Populus balsamifera (balsam poplar) in P. trichocarpa (black cottonwood). Molecular Ecology, online in advance of print. <a href="http://dx.doi.org/10.1111/mec.13539" class="uri">http://dx.doi.org/10.1111/mec.13539</a></p>
+<p>[2] Suarez-Gonzalez A, Hefer C, Christie C, Corea O, Lexer C, Cronk Q, Douglas C (2016) Data from: Genomic and functional approaches reveal a case of adaptive introgression from Populus balsamifera (balsam poplar) in P. trichocarpa (black cottonwood). Dryad Digital Repository. <a href="http://dx.doi.org/10.5061/dryad.0817m" class="uri">http://dx.doi.org/10.5061/dryad.0817m</a></p>
 </div>
 
 
