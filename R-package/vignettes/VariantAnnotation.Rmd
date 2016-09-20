@@ -1,0 +1,94 @@
+---
+title: "Vignette Title"
+author: "Vignette Author"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Vignette Title}
+  %\VignetteEngine{knitr::rmarkdown}
+  \usepackage[utf8]{inputenc}
+---
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Populus dataset
+
+The populus data can be download from on dryad on this link: http://datadryad.org/resource/doi:10.5061/dryad.0817m
+
+```{r populus.ddl, eval=TRUE, cache = TRUE}
+download.file("http://datadryad.org/bitstream/handle/10255/dryad.99401/Original_data_set_ch6_12_15.zip?sequence=1", "populus.zip")
+unzip("populus.zip")
+```
+
+**Remark:** Populus is a large dataset, this script must be run on a computer with a least 16 Go of RAM.
+
+## Create a SNP matrix with the package `VariantAnnotation`
+
+The `"GT"` format field is red with `VariantAnnotation` and then the matrix is filtered
+to keep only SNPs.
+
+```{r populus.snpmatrix, eval=TRUE, dependson = c("populus.ddl"), cache = FALSE}
+library(VariantAnnotation)
+
+## Reading Ref and Alt nucleotyde
+param <- ScanVcfParam(fixed = c("ALT"), geno = NA, info = NA)
+vcf6 <- readVcf("Original_data_set_ch6_12_15/comt.chr06.snp.full.final.vcf",
+                "vcf6", param)
+
+## Extract GT from the vcf file
+gt6 <- readGT("Original_data_set_ch6_12_15/comt.chr06.snp.full.final.vcf")
+
+## Keep only SNPs
+snp6 <- genotypeToSnpMatrix(gt6,
+                            ref = fixed(vcf6)[,1],
+                            alt = fixed(vcf6)[,2])
+snp6.mask <- !snp6$map$ignore
+rm(snp6)
+gt6.snp <- gt6[snp6.mask,]
+
+## Look what there is inside the matrix
+values <- unique(as.vector(gt6.snp))
+values
+
+## Make a numeric matrix
+gt6.snp[gt6.snp == "0/0"] <- 0
+gt6.snp[gt6.snp == "0/1"] <- 1
+gt6.snp[gt6.snp == "1/1"] <- 2
+gt6.snp[gt6.snp == "."] <- NA
+gt6.snp.matrix <- t(matrix(as.integer(gt6.snp), nrow(gt6.snp), ncol(gt6.snp)))
+rm(gt6.snp)
+rm(gt6)
+```
+
+## Create a likelihood genotype matrix with the package `VariantAnnotation`
+
+The `"PL"` format field is red with `VariantAnnotation` and then the matrix is filtered
+to keep only SNPs.
+
+```{r populus.likelihood, eval=TRUE, dependson = c("populus.ddl", "populus.snpmatrix"), cache = TRUE}
+library(VariantAnnotation)
+
+## Check what field are available
+hcf <- scanVcfHeader("Original_data_set_ch6_12_15/comt.chr06.snp.full.final.vcf")
+geno(hcf)
+
+## Extract PL from the vcf file
+pl6 <- readGeno("Original_data_set_ch6_12_15/comt.chr06.snp.full.final.vcf", 'PL')
+
+## Keep only snps
+pl6.snp <- pl6[snp6.mask,]
+
+## Make a numeric matrix
+pl6.snp.matrix <- t(matrix(unlist(pl6.snp), nrow = 3 * nrow(pl6.snp), ncol = ncol(pl6.snp)))
+rm(pl6)
+rm(pl6.snp)
+```
+
+
+## Save data
+```{r populus.save, eval=TRUE, dependson=c("populus.ddl", "populus.snpmatrix", populus.likelihood), cache=TRUE}
+populus.data <- list(gt6.snp.matrix = gt6.snp.matrix, pl6.snp.matrix = pl6.snp.matrix)
+save(populus.data, file = "populus.data.RData")
+```
