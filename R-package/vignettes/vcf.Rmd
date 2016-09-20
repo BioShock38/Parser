@@ -1,0 +1,89 @@
+---
+title: <center><span style="color:SteelBlue">vcfR</span></center>
+author: <center>Bioshock38</center>
+output: html_document
+---
+
+## <span style="color:SteelBlue">How to get the SNP matrix from a VCF</span> 
+
+Here we use the `R` package `vcfR` to extract the genotypes contained in a VCF file.
+`read.vcfR` stores the VCF into an object of class `vcfR` and
+`extract.gt` retrieves the genotype matrix from `vcfR` objects.
+Here is a little walkthrough example on how to obtain the SNP matrix from a VCF, with a free and open
+dataset available here: [http://datadryad.org/resource/doi:10.5061/dryad.0817m](http://datadryad.org/resource/doi:10.5061/dryad.0817m). For computational reasons, we will only consider the first 1,000 variants by setting the argument `n` to `1000` in 
+the `read.vcfR` function.
+
+```
+require(vcfR)
+setwd("~/Downloads/Original_data_set_ch6_12_15/")
+obj.vcfR <- read.vcfR("comt.chr06.snp.full.final.vcf",n=100)
+geno <- extract.gt(obj.vcfR) 
+print(geno[1:4,1:8])
+```
+
+`extract.gt` returns the genotypic information in a simple way that we can easily convert into allele counts.
+Non SNP markers are then removed using a mask and missing values are encoded with a `9`. All of this is done
+as follows:
+
+```
+"0/0" -> 0
+"0/1" -> 1
+"1/0" -> 1
+"1/1" -> 2
+"./." -> 9
+NA -> 9
+```
+
+We choose to proceed block-wisely so the whole genotype matrix is not stored once again.
+
+```{r}
+convert.line <- function(hap.block){
+  geno.block <- array(9,dim=dim(hap.block))
+  geno.block[which(hap.block=="0/0",arr.ind = TRUE)] <- 0
+  geno.block[which(hap.block=="0/1",arr.ind = TRUE)] <- 1
+  geno.block[which(hap.block=="1/0",arr.ind = TRUE)] <- 1
+  geno.block[which(hap.block=="1/1",arr.ind = TRUE)] <- 2
+  mask <- !as.logical(apply(hap.block,MARGIN=1,FUN=function(x){sum(!(x %in% c("0/0","0/1","1/0","1/1","./.",NA)))}))
+  filtered.geno <- geno.block[mask,]
+  return(filtered.geno)
+}
+```
+
+```{r}
+vcf2pcadapt <- function(geno,output.file="file.pcadapt",blocksize=1000,console.count=10000){
+  if (file.exists(output.file)){
+    file.remove(output.file)
+  }
+  nIND <- ncol(geno)
+  nSNP <- nrow(geno)
+  init.block <- 1
+  end.block <- blocksize
+  skipped <- 0
+  while (init.block < nSNP && end.block <= nSNP){
+    snp.lines <- geno[init.block:end.block,]
+    hap2geno <- t(convert.line.2(snp.lines))
+    skipped <- skipped + blocksize - ncol(hap2geno)
+    write(hap2geno,file = output.file,append = TRUE,ncolumns = nIND)  
+    if (end.block%%console.count == 0){
+      cat('\r',end.block,"SNPs have been processed.")
+      flush.console() 
+    }
+    if (end.block+blocksize <= nSNP){
+      init.block <- end.block + 1
+      end.block <- end.block + blocksize
+    } else {
+      init.block <- end.block + 1
+      end.block <- nSNP
+    }
+  }
+  cat('\r',end.block,"variants have been processed.\n",skipped,"variants have been discarded as they are not SNPs.")
+}
+```
+
+```
+start.time <- Sys.time()
+vcf2pcadapt(geno,blocksize=100,console.count=100)
+end.time <- Sys.time()
+print(end.time - start.time)
+```
+
