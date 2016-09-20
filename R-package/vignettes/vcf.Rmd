@@ -16,7 +16,7 @@ the `read.vcfR` function.
 ```
 require(vcfR)
 setwd("~/Downloads/Original_data_set_ch6_12_15/")
-obj.vcfR <- read.vcfR("comt.chr06.snp.full.final.vcf",n=100)
+obj.vcfR <- read.vcfR("comt.chr06.snp.full.final.vcf",n=1000)
 geno <- extract.gt(obj.vcfR) 
 ```
 

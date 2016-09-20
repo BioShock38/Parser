@@ -129,7 +129,7 @@ Bioshock38
 <p>Here we use the <code>R</code> package <code>vcfR</code> to extract the genotypes contained in a VCF file. <code>read.vcfR</code> stores the VCF into an object of class <code>vcfR</code> and <code>extract.gt</code> retrieves the genotype matrix from <code>vcfR</code> objects. Here is a little walkthrough example on how to obtain the SNP matrix from a VCF, with a free and open dataset available here: <a href="http://datadryad.org/resource/doi:10.5061/dryad.0817m" class="uri">http://datadryad.org/resource/doi:10.5061/dryad.0817m</a> [2]. For computational reasons, we will only consider the first 1,000 variants by setting the argument <code>n</code> to <code>1000</code> in the <code>read.vcfR</code> function.</p>
 <pre><code>require(vcfR)
 setwd(&quot;~/Downloads/Original_data_set_ch6_12_15/&quot;)
-obj.vcfR &lt;- read.vcfR(&quot;comt.chr06.snp.full.final.vcf&quot;,n=100)
+obj.vcfR &lt;- read.vcfR(&quot;comt.chr06.snp.full.final.vcf&quot;,n=1000)
 geno &lt;- extract.gt(obj.vcfR) </code></pre>
 <p><code>extract.gt</code> returns the genotypic information in a simple way that we can easily convert into allele counts. Non SNP markers are then removed using a mask and missing values are encoded with a <code>9</code>. All of this is done as follows:</p>
 <pre><code>&quot;0/0&quot; -&gt; 0
@@ -160,7 +160,7 @@ NA -&gt; 9</code></pre>
   skipped &lt;- 0
   while (init.block &lt; nSNP &amp;&amp; end.block &lt;= nSNP){
     snp.lines &lt;- geno[init.block:end.block,]
-    hap2geno &lt;- t(convert.line.2(snp.lines))
+    hap2geno &lt;- t(convert.line.(snp.lines))
     skipped &lt;- skipped + blocksize - ncol(hap2geno)
     write(hap2geno,file = output.file,append = TRUE,ncolumns = nIND)  
     if (end.block%%console.count == 0){
