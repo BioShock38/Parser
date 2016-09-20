@@ -17,20 +17,21 @@ knitr::opts_chunk$set(echo = TRUE)
 
 The populus data can be download from on dryad on this link: http://datadryad.org/resource/doi:10.5061/dryad.0817m
 
-```{r populus.ddl, eval=TRUE, cache = TRUE}
+```{r populus.ddl, eval=FALSE, cache = TRUE}
 download.file("http://datadryad.org/bitstream/handle/10255/dryad.99401/Original_data_set_ch6_12_15.zip?sequence=1", "populus.zip")
 unzip("populus.zip")
 ```
 
-**Remark:** Populus is a large dataset, this script must be run on a computer with a least 16 Go of RAM.
+**Remark:** Populus is a large dataset, this script must be run on a computer with at least 16 Go of RAM. The following command lines take 18 minutes Intel Xeon 2.00GHz.
 
 ## Create a SNP matrix with the package `VariantAnnotation`
 
-The `"GT"` format field is red with `VariantAnnotation` and then the matrix is filtered
+The `"GT"` format field is read with `VariantAnnotation` and then the matrix is filtered
 to keep only SNPs.
 
 ```{r populus.snpmatrix, eval=TRUE, dependson = c("populus.ddl"), cache = FALSE}
 library(VariantAnnotation)
+library(snpStats)
 
 ## Reading Ref and Alt nucleotyde
 param <- ScanVcfParam(fixed = c("ALT"), geno = NA, info = NA)
@@ -88,7 +89,7 @@ rm(pl6.snp)
 
 
 ## Save data
-```{r populus.save, eval=TRUE, dependson=c("populus.ddl", "populus.snpmatrix", populus.likelihood), cache=TRUE}
+```{r populus.save, eval=TRUE, dependson=c("populus.ddl", "populus.snpmatrix", "populus.likelihood"), cache=TRUE}
 populus.data <- list(gt6.snp.matrix = gt6.snp.matrix, pl6.snp.matrix = pl6.snp.matrix)
 save(populus.data, file = "populus.data.RData")
 ```
