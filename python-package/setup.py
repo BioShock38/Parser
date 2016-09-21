@@ -6,4 +6,7 @@ setup(name='polymnie',
       author='Thomas Dias-Alves',
       packages=find_packages(),
       test_suite='polymnie.tests',
+      install_requires=[
+          'vcfnp'
+      ]
       zip_safe=False)
