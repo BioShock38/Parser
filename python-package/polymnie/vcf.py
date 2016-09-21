@@ -33,8 +33,9 @@ def vcf2snp(filename, missing=3, cache=True):
     mask = np.logical_and.reduce(mask, axis=1)
 
     G = G[mask, :]
+    mask_missing = np.logical_and.reduce(G == -1, axis=2)
     G = np.sum(G.T, axis=0, dtype=np.int8)
 
-    G[G == -2] = missing
+    G[mask_missing.T] = missing
 
     return G
